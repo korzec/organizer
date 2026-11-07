@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f0e9">
+  <meta name="description" content="Sort a photo library by camera source and year. Preview every move and restore from a local manifest.">
+  <title>Photo Library Organizer</title>
+  <style>
+    :root{color-scheme:light;--paper:#f3f0e9;--ink:#222a25;--muted:#68726b;--line:#d8d7cd;--forest:#244f3e;--forest2:#193a2e;--sage:#dce7da;--lime:#cadf76;--white:#fffefa;--red:#9d3d35;--shadow:0 22px 60px rgba(34,42,37,.08);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;color:var(--ink);background:radial-gradient(ellipse at 85% 6%,rgba(202,223,118,.22),transparent 34rem),var(--paper)}
+    button,select{font:inherit}button:focus-visible,select:focus-visible{outline:3px solid #88a653;outline-offset:3px}.shell{width:min(1180px,calc(100% - 40px));margin:0 auto}
+    .topbar{border-bottom:1px solid rgba(34,42,37,.12)}.topbar-inner{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:720;letter-spacing:-.02em}.brand-mark{width:34px;height:34px;border-radius:10px 10px 10px 3px;display:grid;place-items:center;color:var(--lime);background:var(--forest)}.brand-mark svg{width:19px;height:19px}
+    .privacy-chip{display:inline-flex;align-items:center;gap:8px;color:var(--forest);border:1px solid #bfd0c0;background:rgba(255,254,250,.48);padding:8px 12px;border-radius:999px;font-size:12px;font-weight:650}.privacy-chip:before{content:"";width:7px;height:7px;background:#65835f;border-radius:50%;box-shadow:0 0 0 3px rgba(101,131,95,.12)}
+    .hero{padding:52px 0 32px;display:grid;grid-template-columns:1fr auto;align-items:end;gap:32px}.eyebrow{color:var(--forest);font-size:11px;font-weight:760;letter-spacing:.15em;text-transform:uppercase}
+    h1{max-width:740px;margin:13px 0 14px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(38px,5vw,60px);font-weight:500;letter-spacing:-.045em;line-height:.99}.hero p{max-width:660px;color:var(--muted);font-size:16px;line-height:1.6;margin:0}
+    .hero-note{max-width:220px;padding:15px 17px;border-left:2px solid var(--lime);color:var(--muted);font-size:12px;line-height:1.55}.hero-note strong{display:block;color:var(--ink);font-size:13px;margin-bottom:4px}
+    .panel{background:rgba(255,254,250,.86);border:1px solid rgba(34,42,37,.12);border-radius:18px;box-shadow:var(--shadow)}.setup{padding:23px}
+    .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.section-head h2,.preview-header h2{font-family:Georgia,"Times New Roman",serif;font-size:25px;font-weight:500;letter-spacing:-.025em;margin:0 0 5px}.section-head p,.preview-header p{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+    .step-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;padding-top:7px}
+    .folder-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:22px}.folder-card{border:1px solid var(--line);border-radius:13px;background:#fbfaf5;padding:17px;min-height:144px;display:flex;flex-direction:column;align-items:flex-start}.folder-card.selected{border-color:#8ca68c;background:#f5f8ef}
+    .folder-label{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px}.folder-index{width:23px;height:23px;display:grid;place-items:center;background:var(--sage);color:var(--forest);border-radius:50%;font-size:11px;font-weight:800}
+    .folder-card p{color:var(--muted);font-size:12px;line-height:1.45;margin:8px 0 14px 32px}.folder-actions{display:flex;align-items:center;gap:10px;margin-top:auto}.folder-name{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--forest);font-size:12px;font-weight:650}
+    .controls{display:flex;align-items:center;flex-wrap:wrap;gap:13px 20px;padding:18px 0 15px}.select-label{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px}select{color:var(--ink);border:1px solid var(--line);background:var(--white);border-radius:8px;padding:8px 30px 8px 10px}.check{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;user-select:none}.check input{accent-color:var(--forest);width:15px;height:15px}
+    .button-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px}.button{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:9px;padding:10px 14px;font-size:12px;line-height:1.25;font-weight:720;transition:transform .15s ease,background .15s ease,border-color .15s ease}.button:hover:not(:disabled){transform:translateY(-1px)}.button:disabled{cursor:not-allowed;opacity:.48}.button-primary{color:var(--white);background:var(--forest)}.button-primary:hover:not(:disabled){background:var(--forest2)}.button-secondary{color:var(--forest);background:transparent;border-color:#aebcae}.button-secondary:hover:not(:disabled){background:#edf3e8}.button-quiet{color:var(--muted);background:transparent;border-color:var(--line)}.button-danger{color:var(--white);background:var(--red)}.button svg{width:15px;height:15px}
+    .privacy-note{display:flex;align-items:flex-start;gap:10px;margin-top:18px;padding:12px 13px;color:#496248;background:#eef4e9;border-radius:10px;font-size:11px;line-height:1.5}.privacy-note svg{width:15px;height:15px;flex:0 0 auto;margin-top:1px}
+    .message{display:none;margin:14px 0 0;padding:11px 13px;border:1px solid #e4c8a8;border-radius:9px;color:#815125;background:#fbf1e4;font-size:12px;line-height:1.5}.message.visible{display:block}.message.error{color:#873b34;border-color:#e1b9b4;background:#fbefed}
+    .progress-wrap{display:none;margin-top:13px}.progress-wrap.visible{display:block}.progress-caption{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;margin-bottom:5px}progress{display:block;width:100%;height:6px;border:0;border-radius:99px;overflow:hidden}progress::-webkit-progress-bar{background:#e6e6dd}progress::-webkit-progress-value{background:#6f8f68;border-radius:99px}progress::-moz-progress-bar{background:#6f8f68;border-radius:99px}
+    .preview{margin-top:19px;overflow:hidden}.preview-header{padding:21px 23px 16px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.preview-header p{font-size:12px}
+    .preview-state{display:inline-flex;align-items:center;gap:7px;color:#4b6647;font-size:11px;font-weight:700;white-space:nowrap;padding-top:6px}.preview-state:before{content:"";width:7px;height:7px;border-radius:50%;background:#709264}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:15px 23px}.stat{min-height:74px;padding:12px 13px;border:1px solid var(--line);background:#fbfaf5;border-radius:10px}.stat-number{font-family:Georgia,"Times New Roman",serif;font-size:23px;letter-spacing:-.04em}.stat-label{color:var(--muted);font-size:10px;font-weight:650;margin-top:3px}
+    .table-wrap{max-height:390px;overflow:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}table{width:100%;border-collapse:collapse;min-width:920px;font-size:11px}th{position:sticky;top:0;z-index:1;color:var(--muted);background:#f5f4ee;font-size:10px;font-weight:720;letter-spacing:.05em;text-align:left;padding:10px 11px;white-space:nowrap}td{max-width:270px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-top:1px solid #eeede6;padding:9px 11px}tr:hover td{background:#faf9f3}.type-chip{display:inline-block;padding:4px 7px;border-radius:999px;color:#4e6650;background:#e9efe4;font-size:9px;font-weight:720}.type-chip.video{color:#805d37;background:#f5ecdd}.type-chip.sidecar{color:#5b647b;background:#eaedf4}.path-current{color:var(--muted)}.path-planned{color:var(--forest);font-weight:640}
+    .empty-state{display:grid;place-items:center;min-height:180px;padding:28px;color:var(--muted);text-align:center;font-size:12px;line-height:1.6}.empty-state strong{display:block;color:var(--ink);font-size:14px;margin-bottom:5px}.preview-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:13px 23px}.preview-footer p{color:var(--muted);font-size:11px;line-height:1.4;margin:0}
+    .restore{margin-top:19px;padding:21px 23px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:20px}.restore h2{font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:22px;margin:0 0 5px}.restore p{color:var(--muted);font-size:12px;line-height:1.5;margin:0}.manifest-name{display:block;color:var(--forest);font-size:11px;font-weight:650;margin-top:7px}
+    .help{margin:34px 0 50px;display:grid;grid-template-columns:.75fr 1.25fr;gap:32px;border-top:1px solid var(--line);padding-top:22px}.help h2{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:22px;font-weight:500}.help-copy{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px}.help-item strong{display:block;font-size:12px;margin-bottom:5px}.help-item p{color:var(--muted);font-size:11px;line-height:1.55;margin:0}.footer{border-top:1px solid var(--line);color:var(--muted);font-size:10px;padding:18px 0 24px}.footer-inner{display:flex;justify-content:space-between;gap:16px}.hidden{display:none!important}
+    @media(max-width:760px){.shell{width:min(100% - 24px,640px)}.topbar-inner{height:62px}.hero{grid-template-columns:1fr;padding:37px 0 25px;gap:17px}.hero-note{max-width:none}.folder-grid{grid-template-columns:1fr}.setup{padding:17px}.stats{grid-template-columns:repeat(2,1fr);padding:13px 15px}.preview-header{padding:17px 15px 13px}.preview-footer{padding:13px 15px}.restore{grid-template-columns:1fr;padding:18px}.help{grid-template-columns:1fr;gap:16px}.help-copy{grid-template-columns:1fr}.privacy-chip{font-size:10px;padding:7px 9px}.footer-inner{flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="shell topbar-inner">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5h4l1.5-2h5l1.5 2H20v11H4v-11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.3" stroke="currentColor" stroke-width="1.7"/></svg></span><span>Photo Library Organizer</span></div>
+    <span class="privacy-chip">Local processing · No uploads</span>
+  </div></header>
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title"><div>
+      <div class="eyebrow">A calmer photo archive</div>
+      <h1 id="page-title">Bring the whole collection into focus.</h1>
+      <p>Sort mixed folders into a simple <strong>Source / Year</strong> structure. Preview every destination first, keep a local restore manifest, and leave your photo data on your computer.</p>
+    </div><aside class="hero-note"><strong>Built for mixed libraries</strong>Phone cameras, shared folders, messaging exports, and older imports can all be scanned together.</aside></section>
+
+    <section class="panel setup" aria-labelledby="setup-title">
+      <div class="section-head"><div><h2 id="setup-title">Choose your folders</h2><p>The source and organized destination must be separate folders.</p></div><span class="step-label">Step 01 / 03</span></div>
+      <div class="folder-grid">
+        <article class="folder-card" id="sourceCard"><div class="folder-label"><span class="folder-index">1</span> Photo library</div><p>Choose the folder containing your current collection. Subfolders can be included.</p><div class="folder-actions"><button class="button button-secondary" id="chooseSource">Choose source folder</button><span class="folder-name" id="sourceName" aria-live="polite">No folder selected</span></div></article>
+        <article class="folder-card" id="destinationCard"><div class="folder-label"><span class="folder-index">2</span> Organized destination</div><p>Choose where the new Source / Year folders should live.</p><div class="folder-actions"><button class="button button-secondary" id="chooseDestination">Choose destination</button><span class="folder-name" id="destinationName" aria-live="polite">No folder selected</span></div></article>
+      </div>
+      <div class="controls">
+        <label class="select-label" for="fallbackSelect">When camera EXIF is missing
+          <select id="fallbackSelect"><option value="folder">Use nearest meaningful folder</option><option value="unknown">Use “Unknown Source”</option></select>
+        </label>
+        <label class="check"><input type="checkbox" id="recursiveToggle" checked> Include subfolders</label>
+        <label class="check"><input type="checkbox" id="videoToggle" checked> Include videos</label>
+      </div>
+      <div class="button-row">
+        <button class="button button-primary" id="scanButton" disabled><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Scan &amp; preview</button>
+        <button class="button button-quiet" id="chooseManifest">Choose restore manifest</button><span class="folder-name" id="manifestName" aria-live="polite"></span>
+      </div>
+      <div class="privacy-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 19 6v5.2c0 4.4-2.7 7.7-7 9.8-4.3-2.1-7-5.4-7-9.8V6l7-3Z" stroke="currentColor" stroke-width="1.7"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Private by design.</strong> The browser reads your chosen folders locally. Photos, EXIF, and filenames are not sent to this site or a server. Folder access works in current Chrome and Edge on desktop.</span></div>
+      <div class="message" id="message" role="status" aria-live="polite"></div>
+      <div class="progress-wrap" id="progressWrap" aria-live="polite"><div class="progress-caption"><span id="progressLabel">Working…</span><span id="progressCount">0 / 0</span></div><progress id="progressBar" max="1" value="0"></progress></div>
+    </section>
+
+    <section class="panel preview" aria-labelledby="preview-title">
+      <div class="preview-header"><div><h2 id="preview-title">Dry-run preview</h2><p id="previewSubtitle">Choose folders and scan to see exactly where files would go.</p></div><span class="preview-state">Read-only until you apply</span></div>
+      <div class="stats"><div class="stat"><div class="stat-number" id="photoCount">—</div><div class="stat-label">PHOTOS</div></div><div class="stat"><div class="stat-number" id="videoCount">—</div><div class="stat-label">VIDEOS</div></div><div class="stat"><div class="stat-number" id="exifCount">—</div><div class="stat-label">CAMERA EXIF SOURCE</div></div><div class="stat"><div class="stat-number" id="fallbackCount">—</div><div class="stat-label">FOLDER FALLBACK</div></div></div>
+      <div class="table-wrap" id="tableWrap"><div class="empty-state" id="emptyState"><div><strong>Your preview will appear here</strong>Every planned source, year, and destination will be listed before anything moves.</div></div>
+        <table id="planTable" class="hidden"><thead><tr><th>TYPE</th><th>SOURCE</th><th>YEAR</th><th>DATE</th><th>DATE FROM</th><th>CURRENT PATH</th><th>PLANNED PATH</th></tr></thead><tbody id="planRows"></tbody></table>
+      </div>
+      <div class="preview-footer"><p id="previewCount">No files scanned yet.</p><div class="button-row"><button class="button button-quiet" id="exportButton" disabled>Export preview CSV</button><button class="button button-primary" id="applyButton" disabled>Apply moves</button><button class="button button-danger" id="restoreButton" disabled>Restore selected run</button></div></div>
+    </section>
+
+    <section class="panel restore" aria-labelledby="restore-title"><div><h2 id="restore-title">Undo an earlier run</h2><p>Each applied run stores a JSON manifest in the organized destination. Choose it above, select the same source and destination folders, then restore. Existing originals are never overwritten.</p><span class="manifest-name" id="manifestHint">No restore manifest selected</span></div><button class="button button-secondary" id="restoreHelp">How restore works</button></section>
+    <section class="help" aria-labelledby="help-title"><h2 id="help-title">A few helpful details</h2><div class="help-copy">
+      <div class="help-item"><strong>Source comes from the camera</strong><p>Make and model tags such as “Apple iPhone 14” become the source folder. If EXIF is missing, use the nearest meaningful folder name or Unknown Source.</p></div>
+      <div class="help-item"><strong>Dates are shown honestly</strong><p>The capture date is read from common JPEG, HEIC, TIFF, PNG, or WebP EXIF. If it is unavailable, the file modified date is used and labeled in the preview.</p></div>
+      <div class="help-item"><strong>Files are moved locally</strong><p>Applying a plan copies a file to its destination, checks its size, then removes the original. If a copy cannot be verified, the original stays in place.</p></div>
+      <div class="help-item"><strong>Name collisions stay safe</strong><p>Existing destination names get a numbered suffix in the plan. XMP, AAE, and THM sidecars move with matching media files.</p></div>
+    </div></section>
+  </main>
+  <footer class="footer"><div class="shell footer-inner"><span>Photo Library Organizer · local browser tool</span><span>Preview first. Keep a restore manifest.</span></div></footer>
+
+  <script src="exifr.umd.js"></script>
+  <script>
+    "use strict";
+    const APP_MANIFEST_FORMAT = "photo-library-organizer/web-v1";
+    const IMAGE_EXTENSIONS = new Set([".jpg",".jpeg",".tif",".tiff",".png",".webp",".bmp",".gif",".heic",".heif",".avif",".dng",".nef",".nrw",".arw",".srf",".sr2",".cr2",".cr3",".crw",".raf",".orf",".rw2",".pef",".3fr",".fff",".iiq",".k25",".kdc",".mos",".mrw",".rwl",".x3f"]);
+    const VIDEO_EXTENSIONS = new Set([".mp4",".mov",".m4v",".avi",".mts",".m2ts",".3gp",".3g2",".mpg",".mpeg",".mkv",".wmv",".webm"]);
+    const SIDECAR_EXTENSIONS = new Set([".xmp",".aae",".thm"]);
+    const GENERIC_FOLDERS = new Set(["camera","cameras","dcim","image","images","media","photo","photos","picture","pictures","originals","download","downloads","import","imports","export","exports","100apple","100andro","100and_a","100msdcf","100canon","101msdcf"]);
+    const MAX_PREVIEW_ROWS = 2500;
+    const state = { source:null, destination:null, plan:[], restoreHandle:null, restoreData:null, busy:false, applied:false };
+    const $ = (id) => document.getElementById(id);
+    const el = {
+      sourceName:$("sourceName"),destinationName:$("destinationName"),sourceCard:$("sourceCard"),destinationCard:$("destinationCard"),
+      chooseSource:$("chooseSource"),chooseDestination:$("chooseDestination"),scanButton:$("scanButton"),applyButton:$("applyButton"),
+      exportButton:$("exportButton"),restoreButton:$("restoreButton"),chooseManifest:$("chooseManifest"),manifestName:$("manifestName"),
+      manifestHint:$("manifestHint"),message:$("message"),progressWrap:$("progressWrap"),progressLabel:$("progressLabel"),
+      progressCount:$("progressCount"),progressBar:$("progressBar"),emptyState:$("emptyState"),planTable:$("planTable"),
+      planRows:$("planRows"),previewSubtitle:$("previewSubtitle"),previewCount:$("previewCount"),photoCount:$("photoCount"),
+      videoCount:$("videoCount"),exifCount:$("exifCount"),fallbackCount:$("fallbackCount")
+    };
+
+    function supportsFolderAccess(){return window.isSecureContext&&typeof window.showDirectoryPicker==="function"&&typeof window.showOpenFilePicker==="function";}
+    function showMessage(text,kind){el.message.textContent=text;el.message.className="message visible"+(kind==="error"?" error":"");}
+    function clearMessage(){el.message.textContent="";el.message.className="message";}
+    function setProgress(label,current,total){el.progressWrap.classList.add("visible");el.progressLabel.textContent=label;el.progressCount.textContent=current.toLocaleString()+" / "+total.toLocaleString();el.progressBar.max=Math.max(total,1);el.progressBar.value=current;}
+    function hideProgress(){el.progressWrap.classList.remove("visible");}
+    function hasRestorableEntries(){return !!(state.restoreData&&Array.isArray(state.restoreData.entries)&&state.restoreData.entries.some((entry)=>["planned","moving","moved","failed","restoring"].includes(entry.status)));}
+    function setBusy(value){state.busy=value;el.chooseSource.disabled=value;el.chooseDestination.disabled=value;el.chooseManifest.disabled=value;el.scanButton.disabled=value||!state.source||!state.destination;el.applyButton.disabled=value||state.applied||state.plan.length===0;el.exportButton.disabled=value||state.plan.length===0;el.restoreButton.disabled=value||!state.restoreHandle||!hasRestorableEntries()||!state.source||!state.destination;}
+    function updateFolderCard(role,handle){const isSource=role==="source",name=isSource?el.sourceName:el.destinationName,card=isSource?el.sourceCard:el.destinationCard;name.textContent=handle?handle.name:"No folder selected";name.title=handle?handle.name:"";card.classList.toggle("selected",!!handle);el.scanButton.disabled=state.busy||!state.source||!state.destination;el.restoreButton.disabled=state.busy||!state.restoreHandle||!hasRestorableEntries()||!state.source||!state.destination;}
+    function normalizeWhitespace(value){return String(value||"").replace(/[\u0000\s]+/g," ").trim();}
+    function safeComponent(value){let result=normalizeWhitespace(value).replace(/[<>:"\/\\|?*\u0000-\u001f]/g,"-").trim().replace(/[ .]+$/g,"").slice(0,96).replace(/[ .]+$/g,"");if(!result||result==="."||result==="..")result="Unknown Source";if(/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(result))result="_"+result;return result;}
+    function extensionOf(name){const index=name.lastIndexOf(".");return index>0?name.slice(index).toLowerCase():"";}
+    function stemOf(name){const index=name.lastIndexOf(".");return index>0?name.slice(0,index):name;}
+    function relativeName(parts){return parts.join("/");}
+    function destinationKey(parts){return relativeName(parts).toLocaleLowerCase();}
+    function parseExifDate(value){if(value instanceof Date&&!Number.isNaN(value.getTime()))return{year:value.getFullYear(),value:String(value.getFullYear()).padStart(4,"0")+"-"+String(value.getMonth()+1).padStart(2,"0")+"-"+String(value.getDate()).padStart(2,"0")};const match=normalizeWhitespace(value).match(/(\d{4})[:/-](\d{2})[:/-](\d{2})/);if(!match)return null;const y=Number(match[1]),m=Number(match[2]),d=Number(match[3]),check=new Date(Date.UTC(y,m-1,d));if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return null;return{year:y,value:String(y).padStart(4,"0")+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0")};}
+
+    function parseTiff(buffer,start){
+      try{
+        const view=new DataView(buffer),bytes=new Uint8Array(buffer);start=start||0;if(start+8>view.byteLength)return{};
+        const order=String.fromCharCode(view.getUint8(start),view.getUint8(start+1));if(order!=="II"&&order!=="MM")return{};const little=order==="II";
+        const u16=(offset)=>view.getUint16(offset,little),u32=(offset)=>view.getUint32(offset,little);if(u16(start+2)!==42)return{};
+        const sizes={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8};
+        const readIfd=(relative)=>{const ifd=start+relative;if(ifd+2>view.byteLength)return new Map();const count=u16(ifd),tags=new Map();for(let i=0;i<count;i++){const entry=ifd+2+i*12;if(entry+12>view.byteLength)break;const tag=u16(entry),type=u16(entry+2),amount=u32(entry+4),size=sizes[type];if(!size||amount>100000)continue;const byteLength=size*amount,dataAt=byteLength<=4?entry+8:start+u32(entry+8);if(dataAt<0||dataAt+byteLength>view.byteLength)continue;let value;if(type===2||type===7){value=new TextDecoder("ascii").decode(bytes.subarray(dataAt,dataAt+byteLength)).replace(/\u0000+$/g,"").trim();}else if(type===3){value=amount===1?u16(dataAt):Array.from({length:amount},(_,n)=>u16(dataAt+n*2));}else if(type===4||type===9){value=amount===1?u32(dataAt):Array.from({length:amount},(_,n)=>u32(dataAt+n*4));}if(value!==undefined)tags.set(tag,value);}return tags;};
+        const first=readIfd(u32(start+4)),offset=Number(first.get(0x8769)||0),exif=offset?readIfd(offset):new Map();
+        return{make:first.get(271)||"",model:first.get(272)||"",dateTime:first.get(306)||"",dateOriginal:exif.get(0x9003)||"",dateDigitized:exif.get(0x9004)||""};
+      }catch(_error){return{};}
+    }
+
+    function findExifTiff(buffer){
+      const bytes=new Uint8Array(buffer),view=new DataView(buffer);
+      const is=(at,value)=>at>=0&&at+value.length<=bytes.length&&value.split("").every((c,i)=>bytes[at+i]===c.charCodeAt(0));
+      if(bytes[0]===0xff&&bytes[1]===0xd8){let offset=2;while(offset+4<bytes.length){if(bytes[offset]!==0xff){offset++;continue;}while(bytes[offset]===0xff)offset++;const marker=bytes[offset++];if(marker===0xda||marker===0xd9)break;if(marker===0x01||(marker>=0xd0&&marker<=0xd7))continue;const length=view.getUint16(offset,false);if(length<2||offset+length>bytes.length)break;const dataAt=offset+2;if(marker===0xe1&&is(dataAt,"Exif\u0000\u0000"))return parseTiff(buffer,dataAt+6);offset+=length;}}
+      if(is(0,"II")||is(0,"MM"))return parseTiff(buffer,0);
+      if(is(0,"\x89PNG\r\n\x1a\n")){let offset=8;while(offset+12<=bytes.length){const length=view.getUint32(offset,false),type=String.fromCharCode.apply(null,bytes.subarray(offset+4,offset+8));if(offset+12+length>bytes.length)break;if(type==="eXIf")return parseTiff(buffer,offset+8);offset+=12+length;if(type==="IDAT")break;}}
+      if(is(0,"RIFF")&&is(8,"WEBP")){let offset=12;while(offset+8<=bytes.length){const type=String.fromCharCode.apply(null,bytes.subarray(offset,offset+4)),length=view.getUint32(offset+4,true),dataAt=offset+8;if(dataAt+length>bytes.length)break;if(type==="EXIF")return parseTiff(buffer,dataAt+(is(dataAt,"Exif\u0000\u0000")?6:0));offset=dataAt+length+(length%2);}}
+      return{};
+    }
+    async function readExif(file){if(file.size<8)return{};if(window.exifr&&typeof window.exifr.parse==="function"){try{const parsed=await window.exifr.parse(file);if(parsed&&(parsed.Make||parsed.Model||parsed.DateTimeOriginal||parsed.DateTimeDigitized||parsed.ModifyDate||parsed.CreateDate))return{make:parsed.Make||parsed.make||"",model:parsed.Model||parsed.model||"",dateOriginal:parsed.DateTimeOriginal||parsed.DateCreated||"",dateDigitized:parsed.DateTimeDigitized||"",dateTime:parsed.ModifyDate||parsed.DateTime||parsed.CreateDate||""};}catch(_error){}}const buffer=await file.slice(0,Math.min(file.size,12*1024*1024)).arrayBuffer();return findExifTiff(buffer);}
+    function sourceFromExif(metadata){const make=normalizeWhitespace(metadata.make),model=normalizeWhitespace(metadata.model);if(!make&&!model)return"";const combined=make&&model&&!model.toLowerCase().startsWith(make.toLowerCase())?make+" "+model:(model||make);return safeComponent(combined);}
+    function sourceFromFolders(parts,fallbackMode){if(fallbackMode==="unknown")return"Unknown Source";for(let i=parts.length-1;i>=0;i--){const name=parts[i],folded=name.toLowerCase();if(!name||GENERIC_FOLDERS.has(folded)||/^(?:19|20)\d{2}$/.test(name)||/^\d{3,}$/.test(name))continue;return safeComponent(name);}return"Unknown Source";}
+    async function maybeDirectory(root,parts){let current=root;try{for(const part of parts)current=await current.getDirectoryHandle(part,{create:false});return current;}catch(error){if(error&&(error.name==="NotFoundError"||error.name==="TypeMismatchError"))return null;throw error;}}
+    async function entryExists(directory,name){if(!directory)return false;for(const kind of ["file","directory"]){try{if(kind==="file")await directory.getFileHandle(name,{create:false});else await directory.getDirectoryHandle(name,{create:false});return true;}catch(error){if(error&&error.name!=="NotFoundError"&&error.name!=="TypeMismatchError")throw error;}}return false;}
+    async function chooseAvailableName(baseName,directory,prefixParts,reserved){let name=baseName,candidate=[...prefixParts,name],number=2;while(reserved.has(destinationKey(candidate))||await entryExists(directory,name)){const dot=baseName.lastIndexOf("."),stem=dot>0?baseName.slice(0,dot):baseName,ext=dot>0?baseName.slice(dot):"";name=stem+" ("+number+++")"+ext;candidate=[...prefixParts,name];}reserved.add(destinationKey(candidate));return candidate;}
+    async function directoryAt(root,parts,create){let current=root;for(const part of parts)current=await current.getDirectoryHandle(part,{create:create});return current;}
+    async function ensurePermission(handle,mode){if(!handle.queryPermission||!handle.requestPermission)return true;let permission=await handle.queryPermission({mode:mode});if(permission!=="granted")permission=await handle.requestPermission({mode:mode});if(permission!=="granted")throw new Error("Permission to access “"+handle.name+"” was not granted.");return true;}
+    async function checkFolderOverlap(source,destination){if(await source.isSameEntry(destination))return true;return(await source.resolve(destination))!==null||(await destination.resolve(source))!==null;}
+
+    async function collectMedia(root,recursive,includeVideos){
+      const collected=[];let visited=0;
+      async function visit(directory,parentParts){for await(const pair of directory.entries()){const name=pair[0],handle=pair[1];if(name.startsWith("."))continue;if(handle.kind==="directory"){if(recursive&&!["System Volume Information","$RECYCLE.BIN","RECYCLER"].includes(name))await visit(handle,[...parentParts,name]);}else{const ext=extensionOf(name),kind=IMAGE_EXTENSIONS.has(ext)?"Photo":(includeVideos&&VIDEO_EXTENSIONS.has(ext)?"Video":(SIDECAR_EXTENSIONS.has(ext)?"Sidecar":""));if(kind)collected.push({handle:handle,parent:directory,parentParts:[...parentParts],name:name,ext:ext,kind:kind,relativePath:relativeName([...parentParts,name])});}visited++;if(visited%100===0){setProgress("Finding media",visited,visited+1);await new Promise((resolve)=>setTimeout(resolve,0));}}}
+      await visit(root,[]);return collected;
+    }
+
+    async function scanLibrary(){
+      clearMessage();if(!supportsFolderAccess()){showMessage("Folder access needs a secure Chromium browser. Open this site in current desktop Chrome or Edge.","error");return;}
+      if(!state.source||!state.destination){showMessage("Choose both a source library and an organized destination first.","error");return;}
+      setBusy(true);state.plan=[];state.applied=false;el.photoCount.textContent="—";el.videoCount.textContent="—";el.exifCount.textContent="—";el.fallbackCount.textContent="—";renderPlan();
+      try{
+        await ensurePermission(state.source,"read");await ensurePermission(state.destination,"readwrite");
+        if(await checkFolderOverlap(state.source,state.destination))throw new Error("The source and destination folders overlap. Choose separate folders so the scan cannot include its own output.");
+        const files=await collectMedia(state.source,$("recursiveToggle").checked,$("videoToggle").checked);
+        if(!files.length){state.plan=[];renderPlan();hideProgress();showMessage("No supported photos or videos were found in that folder selection.");return;}
+        const reserved=new Set(),plan=[],mediaLookup=new Map(),destinationDirectories=new Map();
+        const mediaFiles=files.filter((item)=>item.kind!=="Sidecar");let processed=0;
+        for(const item of mediaFiles){
+          const file=await item.handle.getFile(),metadata=await readExif(file),cameraSource=sourceFromExif(metadata);
+          const source=cameraSource||sourceFromFolders(item.parentParts,$("fallbackSelect").value);
+          const sourceBasis=cameraSource?"Camera EXIF":($("fallbackSelect").value==="unknown"?"No camera EXIF":"Folder fallback");
+          const date=[metadata.dateOriginal,metadata.dateDigitized,metadata.dateTime].map(parseExifDate).find(Boolean),fileDate=new Date(file.lastModified);
+          const chosenDate=date||{year:fileDate.getFullYear(),value:String(fileDate.getFullYear())+"-"+String(fileDate.getMonth()+1).padStart(2,"0")+"-"+String(fileDate.getDate()).padStart(2,"0")};
+          const folder=[source,String(chosenDate.year).padStart(4,"0")],folderKey=relativeName(folder);
+          if(!destinationDirectories.has(folderKey))destinationDirectories.set(folderKey,await maybeDirectory(state.destination,folder));
+          const output=await chooseAvailableName(item.name,destinationDirectories.get(folderKey),folder,reserved);
+          const row={...item,fileSize:file.size,source:source,sourceBasis:sourceBasis,year:String(chosenDate.year).padStart(4,"0"),dateValue:chosenDate.value,dateBasis:date?"EXIF":"File modified",destination:output,status:"planned"};
+          plan.push(row);const parentKey=relativeName(item.parentParts).toLowerCase()+"\u0001";mediaLookup.set(parentKey+item.name.toLowerCase(),row);mediaLookup.set(parentKey+stemOf(item.name).toLowerCase(),row);
+          processed++;if(processed%30===0||processed===mediaFiles.length){setProgress("Reading EXIF and planning folders",processed,mediaFiles.length);await new Promise((resolve)=>setTimeout(resolve,0));}
+        }
+        for(const item of files.filter((candidate)=>candidate.kind==="Sidecar")){
+          const parentKey=relativeName(item.parentParts).toLowerCase()+"\u0001";let companion=mediaLookup.get(parentKey+stemOf(item.name).toLowerCase());
+          if(!companion&&stemOf(item.name).includes("."))companion=mediaLookup.get(parentKey+stemOf(stemOf(item.name)).toLowerCase());
+          if(!companion)continue;
+          const mediaName=companion.name,sidecarStem=stemOf(item.name).toLowerCase(),appended=sidecarStem===mediaName.toLowerCase()||sidecarStem.endsWith(extensionOf(mediaName));
+          const companionName=companion.destination[companion.destination.length-1],outputName=appended?companionName+item.ext:stemOf(companionName)+item.ext,folder=companion.destination.slice(0,-1),folderKey=relativeName(folder);
+          if(!destinationDirectories.has(folderKey))destinationDirectories.set(folderKey,await maybeDirectory(state.destination,folder));
+          const output=await chooseAvailableName(outputName,destinationDirectories.get(folderKey),folder,reserved),file=await item.handle.getFile();
+          plan.push({...item,fileSize:file.size,source:companion.source,sourceBasis:"Matched sidecar",year:companion.year,dateValue:companion.dateValue,dateBasis:companion.dateBasis,destination:output,status:"planned"});
+        }
+        plan.sort((a,b)=>a.relativePath.localeCompare(b.relativePath,undefined,{sensitivity:"base"}));state.plan=plan;renderPlan();hideProgress();
+        const photos=plan.filter((item)=>item.kind==="Photo").length,videos=plan.filter((item)=>item.kind==="Video").length,sidecars=plan.filter((item)=>item.kind==="Sidecar").length;
+        const exifSources=plan.filter((item)=>item.kind!=="Sidecar"&&item.sourceBasis==="Camera EXIF").length,fallbacks=plan.filter((item)=>item.kind!=="Sidecar"&&item.sourceBasis!=="Camera EXIF").length;
+        el.photoCount.textContent=photos.toLocaleString();el.videoCount.textContent=videos.toLocaleString();el.exifCount.textContent=exifSources.toLocaleString();el.fallbackCount.textContent=fallbacks.toLocaleString();
+        el.previewSubtitle.textContent="Review the complete move plan below. Nothing has moved yet.";
+        el.previewCount.textContent=photos.toLocaleString()+" photos · "+videos.toLocaleString()+" videos · "+sidecars.toLocaleString()+" matched sidecars"+(plan.length>MAX_PREVIEW_ROWS?" · showing first "+MAX_PREVIEW_ROWS.toLocaleString()+" rows":"");
+        showMessage("Preview ready. Check the source and planned paths before applying the moves.");
+      }catch(error){hideProgress();showMessage(error&&error.message?error.message:String(error),"error");}
+      finally{setBusy(false);}
+    }
+
+    function renderPlan(){
+      el.planRows.replaceChildren();el.planTable.classList.toggle("hidden",state.plan.length===0);el.emptyState.classList.toggle("hidden",state.plan.length>0);
+      const fragment=document.createDocumentFragment();
+      for(const item of state.plan.slice(0,MAX_PREVIEW_ROWS)){
+        const row=document.createElement("tr"),type=document.createElement("td"),chip=document.createElement("span");
+        chip.className="type-chip"+(item.kind==="Video"?" video":item.kind==="Sidecar"?" sidecar":"");chip.textContent=item.kind;type.append(chip);row.append(type);
+        const source=item.source+(item.sourceBasis==="Folder fallback"?" · folder":item.sourceBasis==="No camera EXIF"?" · fallback":item.kind==="Sidecar"?" · sidecar":"");
+        const values=[source,item.year,item.dateValue,item.dateBasis,item.relativePath,relativeName(item.destination)];
+        values.forEach((value,index)=>{const cell=document.createElement("td");cell.textContent=value;cell.title=value;if(index===4)cell.className="path-current";if(index===5)cell.className="path-planned";row.append(cell);});
+        fragment.append(row);
+      }
+      el.planRows.append(fragment);el.applyButton.disabled=state.busy||state.applied||state.plan.length===0;el.exportButton.disabled=state.busy||state.plan.length===0;
+    }
+
+    async function createUniqueManifestHandle(destination){
+      const now=new Date(),stamp=String(now.getFullYear())+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0")+"-"+String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0")+String(now.getSeconds()).padStart(2,"0");
+      let name="photo-organizer-restore-"+stamp+".json",suffix=2;while(await entryExists(destination,name))name="photo-organizer-restore-"+stamp+"-"+suffix+++".json";return destination.getFileHandle(name,{create:true});
+    }
+    async function writeTextFile(handle,text){const writable=await handle.createWritable();try{await writable.write(text);await writable.close();}catch(error){try{await writable.abort();}catch(_abortError){}throw error;}}
+    async function writeManifest(handle,manifest){await writeTextFile(handle,JSON.stringify(manifest,null,2)+"\n");}
+    async function copyThenDelete(sourceDirectory,sourceName,destinationDirectory,destinationName){
+      if(await entryExists(destinationDirectory,destinationName))throw new Error("Destination appeared after preview: "+destinationName+". Rescan before moving.");
+      const sourceHandle=await sourceDirectory.getFileHandle(sourceName,{create:false}),sourceFile=await sourceHandle.getFile();let destinationHandle=null;
+      try{destinationHandle=await destinationDirectory.getFileHandle(destinationName,{create:true});const writable=await destinationHandle.createWritable({keepExistingData:false});await writable.write(sourceFile);await writable.close();const copy=await destinationHandle.getFile();if(copy.size!==sourceFile.size)throw new Error("Copy verification failed for "+sourceName+"; original was kept.");await sourceDirectory.removeEntry(sourceName);return sourceFile.size;}
+      catch(error){try{if(destinationHandle&&await entryExists(destinationDirectory,destinationName))await destinationDirectory.removeEntry(destinationName);}catch(_cleanupError){}throw error;}
+    }
+    function manifestEntry(item){return{source:[...item.parentParts,item.name],destination:[...item.destination],status:"planned",size_bytes:item.fileSize,kind:item.kind};}
+
+    async function applyPlan(){
+      if(!state.plan.length||state.busy)return;if(!confirm("Move "+state.plan.length.toLocaleString()+" files into “"+state.destination.name+"”?\n\nA restore manifest will be saved in the destination before any file moves."))return;
+      setBusy(true);clearMessage();let manifestHandle=null,moved=0,failed=0;
+      try{
+        await ensurePermission(state.source,"readwrite");await ensurePermission(state.destination,"readwrite");
+        if(await checkFolderOverlap(state.source,state.destination))throw new Error("The source and destination folders now overlap. Choose separate folders and scan again.");
+        manifestHandle=await createUniqueManifestHandle(state.destination);
+        const manifest={format:APP_MANIFEST_FORMAT,created_at:new Date().toISOString(),source_root_name:state.source.name,destination_root_name:state.destination.name,state:"applying",entries:state.plan.map(manifestEntry)};
+        await writeManifest(manifestHandle,manifest);state.applied=true;
+        for(let index=0;index<state.plan.length;index++){
+          const item=state.plan[index],entry=manifest.entries[index];entry.status="moving";
+          try{const outputDirectory=await directoryAt(state.destination,item.destination.slice(0,-1),true);await copyThenDelete(item.parent,item.name,outputDirectory,item.destination[item.destination.length-1]);entry.status="moved";item.status="moved";moved++;}
+          catch(error){entry.status="failed";entry.error=error&&error.message?error.message:String(error);item.status="failed";failed++;}
+          setProgress("Moving files",index+1,state.plan.length);if((index+1)%20===0)await new Promise((resolve)=>setTimeout(resolve,0));
+        }
+        manifest.state=failed?"partial":"complete";manifest.completed_at=new Date().toISOString();await writeManifest(manifestHandle,manifest);renderPlan();hideProgress();
+        el.manifestHint.textContent="Saved in "+state.destination.name+" as "+manifestHandle.name;el.manifestName.textContent=manifestHandle.name;
+        showMessage(moved.toLocaleString()+" file(s) moved"+(failed?"; "+failed.toLocaleString()+" failed and remain in place":"")+". Restore manifest: "+manifestHandle.name,failed?"error":"info");
+        if(failed)alert(moved.toLocaleString()+" file(s) moved. "+failed.toLocaleString()+" failed and remain in place.\n\nThe restore manifest is "+manifestHandle.name+" in the destination folder.");
+        state.restoreHandle=manifestHandle;state.restoreData=manifest;el.restoreButton.disabled=!state.source||!state.destination||!hasRestorableEntries();
+      }catch(error){hideProgress();showMessage(error&&error.message?error.message:String(error),"error");}
+      finally{setBusy(false);renderPlan();}
+    }
+
+    async function chooseRestoreManifest(){
+      if(!supportsFolderAccess()){showMessage("Manifest restore needs current desktop Chrome or Edge with local folder access.","error");return;}clearMessage();
+      try{const handles=await window.showOpenFilePicker({multiple:false,types:[{description:"Photo organizer restore manifest",accept:{"application/json":[".json"]}}]});const handle=handles[0];await ensurePermission(handle,"readwrite");const file=await handle.getFile(),manifest=JSON.parse(await file.text());if(!manifest||manifest.format!==APP_MANIFEST_FORMAT||!Array.isArray(manifest.entries))throw new Error("That file is not a Photo Library Organizer restore manifest.");state.restoreHandle=handle;state.restoreData=manifest;el.manifestName.textContent=handle.name;el.manifestHint.textContent="Selected: "+handle.name+" · source “"+(manifest.source_root_name||"unknown")+"” · destination “"+(manifest.destination_root_name||"unknown")+"”";el.restoreButton.disabled=!state.source||!state.destination||state.busy||!hasRestorableEntries();showMessage("Manifest loaded. Select the same original and organized folders, then restore.");}
+      catch(error){if(error&&error.name==="AbortError")return;showMessage(error&&error.message?error.message:String(error),"error");}
+    }
+
+    async function restoreFromManifest(){
+      if(!state.restoreHandle||!state.restoreData||!state.source||!state.destination||state.busy)return;const manifest=state.restoreData;
+      if(state.source.name!==manifest.source_root_name||state.destination.name!==manifest.destination_root_name){showMessage("The selected folder names do not match the roots in this manifest. Select the exact original and organized folders.","error");return;}
+      const active=manifest.entries.filter((entry)=>["planned","moving","moved","failed","restoring"].includes(entry.status));if(!active.length){showMessage("This manifest has no files left to restore.");return;}
+      if(!confirm("Restore up to "+active.length.toLocaleString()+" files to “"+state.source.name+"”?\n\nExisting original files will be left untouched."))return;
+      setBusy(true);clearMessage();let restored=0,skipped=0,failed=0;
+      try{
+        await ensurePermission(state.source,"readwrite");await ensurePermission(state.destination,"readwrite");await ensurePermission(state.restoreHandle,"readwrite");
+        for(let index=0;index<active.length;index++){
+          const entry=active[index],sourceName=entry.source[entry.source.length-1],destinationName=entry.destination[entry.destination.length-1];
+          try{
+            const originalDirectory=await directoryAt(state.source,entry.source.slice(0,-1),true),organizedDirectory=await maybeDirectory(state.destination,entry.destination.slice(0,-1));
+            const originalExists=await entryExists(originalDirectory,sourceName),organizedExists=await entryExists(organizedDirectory,destinationName);
+            if(originalExists){if(!organizedExists&&["moved","moving","restoring"].includes(entry.status)){entry.status="restored";entry.restore_status="already restored";restored++;}else{if(["planned","failed"].includes(entry.status)&&!organizedExists)entry.status="not_moved";entry.restore_status="original path already exists";skipped++;}}
+            else if(!organizedExists){entry.restore_status="organized file missing";entry.error="No file found at the original or organized path.";failed++;}
+            else{await copyThenDelete(organizedDirectory,destinationName,originalDirectory,sourceName);entry.status="restored";entry.restore_status="restored";restored++;}
+          }catch(error){entry.restore_status="failed: "+(error&&error.message?error.message:String(error));failed++;}
+          setProgress("Restoring files",index+1,active.length);if((index+1)%20===0)await new Promise((resolve)=>setTimeout(resolve,0));
+        }
+        manifest.state=failed?"restore-partial":"restored";manifest.restored_at=new Date().toISOString();await writeManifest(state.restoreHandle,manifest);hideProgress();state.restoreData=manifest;
+        el.manifestHint.textContent=state.restoreHandle.name+" · "+restored.toLocaleString()+" restored · "+skipped.toLocaleString()+" skipped"+(failed?" · "+failed.toLocaleString()+" need attention":"");
+        showMessage(restored.toLocaleString()+" file(s) restored; "+skipped.toLocaleString()+" skipped"+(failed?"; "+failed.toLocaleString()+" failed":"")+".",failed?"error":"info");
+        if(failed)alert(restored.toLocaleString()+" restored · "+skipped.toLocaleString()+" skipped · "+failed.toLocaleString()+" failed.\n\nThe manifest has been updated so you can retry remaining files.");
+      }catch(error){hideProgress();showMessage(error&&error.message?error.message:String(error),"error");}
+      finally{setBusy(false);}
+    }
+
+    function exportCsv(){
+      if(!state.plan.length)return;const header=["type","source","source_basis","year","date","date_basis","size_bytes","current_path","planned_path"];
+      const rows=state.plan.map((item)=>[item.kind,item.source,item.sourceBasis,item.year,item.dateValue,item.dateBasis,item.fileSize,item.relativePath,relativeName(item.destination)]);
+      const csv=[header,...rows].map((row)=>row.map((cell)=>'"'+String(cell===undefined?"":cell).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+      const blob=new Blob(["\ufeff",csv],{type:"text/csv;charset=utf-8"}),link=document.createElement("a"),url=URL.createObjectURL(blob);link.href=url;link.download="photo-organizer-preview.csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    async function chooseDirectory(role){
+      if(!supportsFolderAccess()){showMessage("This tool needs a secure desktop browser with the File System Access API. Use current Chrome or Edge.","error");return;}clearMessage();
+      try{const handle=await window.showDirectoryPicker({mode:role==="destination"?"readwrite":"read"});if(role==="source")state.source=handle;else state.destination=handle;updateFolderCard(role,handle);state.plan=[];state.applied=false;renderPlan();}
+      catch(error){if(error&&error.name==="AbortError")return;showMessage(error&&error.message?error.message:String(error),"error");}
+    }
+    el.chooseSource.addEventListener("click",()=>chooseDirectory("source"));el.chooseDestination.addEventListener("click",()=>chooseDirectory("destination"));
+    el.scanButton.addEventListener("click",scanLibrary);el.applyButton.addEventListener("click",applyPlan);el.exportButton.addEventListener("click",exportCsv);
+    el.chooseManifest.addEventListener("click",chooseRestoreManifest);el.restoreButton.addEventListener("click",restoreFromManifest);
+    $("restoreHelp").addEventListener("click",()=>alert("To restore: choose the JSON manifest stored in the organized destination, choose the same original and organized folders, then select Restore selected run. Files are copied back and verified before the organized copy is removed. If a file already exists at its original path, it is left untouched."));
+    if(!supportsFolderAccess())showMessage("For local folder access, open this private site in current desktop Chrome or Edge.","error");
+  </script>
+</body>
+</html>
