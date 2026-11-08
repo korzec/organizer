@@ -74,7 +74,7 @@
 
     <section class="panel preview" aria-labelledby="preview-title">
       <div class="preview-header"><div><h2 id="preview-title">Dry-run preview</h2><p id="previewSubtitle">Choose folders and scan to see exactly where files would go.</p></div><span class="preview-state">Read-only until you apply</span></div>
-      <div class="stats"><div class="stat"><div class="stat-number" id="photoCount">—</div><div class="stat-label">PHOTOS</div></div><div class="stat"><div class="stat-number" id="videoCount">—</div><div class="stat-label">VIDEOS</div></div><div class="stat"><div class="stat-number" id="exifCount">—</div><div class="stat-label">CAMERA EXIF SOURCE</div></div><div class="stat"><div class="stat-number" id="fallbackCount">—</div><div class="stat-label">FOLDER FALLBACK</div></div></div>
+      <div class="stats"><div class="stat"><div class="stat-number" id="photoCount">—</div><div class="stat-label">PHOTOS</div></div><div class="stat"><div class="stat-number" id="videoCount">—</div><div class="stat-label">VIDEOS</div></div><div class="stat"><div class="stat-number" id="exifCount">—</div><div class="stat-label">EXIF / PHOTO-MATCHED SOURCE</div></div><div class="stat"><div class="stat-number" id="fallbackCount">—</div><div class="stat-label">FOLDER FALLBACK</div></div></div>
       <div class="table-wrap" id="tableWrap"><div class="empty-state" id="emptyState"><div><strong>Your preview will appear here</strong>Every planned source, year, and destination will be listed before anything moves.</div></div>
         <table id="planTable" class="hidden"><thead><tr><th>TYPE</th><th>SOURCE</th><th>YEAR</th><th>DATE</th><th>DATE FROM</th><th>CURRENT PATH</th><th>PLANNED PATH</th></tr></thead><tbody id="planRows"></tbody></table>
       </div>
@@ -83,7 +83,7 @@
 
     <section class="panel restore" aria-labelledby="restore-title"><div><h2 id="restore-title">Undo an earlier run</h2><p>Each applied run stores a JSON manifest in the organized destination. Choose it above, select the same source and destination folders, then restore. Existing originals are never overwritten.</p><span class="manifest-name" id="manifestHint">No restore manifest selected</span></div><button class="button button-secondary" id="restoreHelp">How restore works</button></section>
     <section class="help" aria-labelledby="help-title"><h2 id="help-title">A few helpful details</h2><div class="help-copy">
-      <div class="help-item"><strong>Source comes from the camera</strong><p>Make and model tags such as “Apple iPhone 14” become the source folder. If EXIF is missing, use the nearest meaningful folder name or Unknown Source.</p></div>
+      <div class="help-item"><strong>Source comes from the camera</strong><p>Make and model tags such as “Apple iPhone 14” become the source folder. A video without camera EXIF inherits the source when photos in the same folder agree on one camera. If they show multiple cameras, or no camera tags, the selected folder fallback is used.</p></div>
       <div class="help-item"><strong>Dates are shown honestly</strong><p>The capture date is read from common JPEG, HEIC, TIFF, PNG, or WebP EXIF. If it is unavailable, the file modified date is used and labeled in the preview.</p></div>
       <div class="help-item"><strong>Files are moved locally</strong><p>Applying a plan copies a file to its destination, checks its size, then removes the original. If a copy cannot be verified, the original stays in place.</p></div>
       <div class="help-item"><strong>Name collisions stay safe</strong><p>Existing destination names get a numbered suffix in the plan. XMP, AAE, and THM sidecars move with matching media files.</p></div>
@@ -175,19 +175,27 @@
         const files=await collectMedia(state.source,$("recursiveToggle").checked,$("videoToggle").checked);
         if(!files.length){state.plan=[];renderPlan();hideProgress();showMessage("No supported photos or videos were found in that folder selection.");return;}
         const reserved=new Set(),plan=[],mediaLookup=new Map(),destinationDirectories=new Map();
-        const mediaFiles=files.filter((item)=>item.kind!=="Sidecar");let processed=0;
+        const mediaFiles=files.filter((item)=>item.kind!=="Sidecar"),metadataByItem=new Map(),photoSourcesByDirectory=new Map();let processed=0;
         for(const item of mediaFiles){
           const file=await item.handle.getFile(),metadata=await readExif(file),cameraSource=sourceFromExif(metadata);
-          const source=cameraSource||sourceFromFolders(item.parentParts,$("fallbackSelect").value);
-          const sourceBasis=cameraSource?"Camera EXIF":($("fallbackSelect").value==="unknown"?"No camera EXIF":"Folder fallback");
           const date=[metadata.dateOriginal,metadata.dateDigitized,metadata.dateTime].map(parseExifDate).find(Boolean),fileDate=new Date(file.lastModified);
+          metadataByItem.set(item,{file:file,cameraSource:cameraSource,date:date,fileDate:fileDate});
+          if(item.kind==="Photo"&&cameraSource){const directoryKey=relativeName(item.parentParts).toLocaleLowerCase();if(!photoSourcesByDirectory.has(directoryKey))photoSourcesByDirectory.set(directoryKey,new Set());photoSourcesByDirectory.get(directoryKey).add(cameraSource);}
+          processed++;if(processed%30===0||processed===mediaFiles.length){setProgress("Reading metadata and finding photo sources",processed,mediaFiles.length);await new Promise((resolve)=>setTimeout(resolve,0));}
+        }
+        processed=0;
+        for(const item of mediaFiles){
+          const info=metadataByItem.get(item),{file,cameraSource,date,fileDate}=info,directoryKey=relativeName(item.parentParts).toLocaleLowerCase(),siblingSources=photoSourcesByDirectory.get(directoryKey);
+          const inheritedSource=item.kind==="Video"&&!cameraSource&&siblingSources&&siblingSources.size===1?Array.from(siblingSources)[0]:"";
+          const source=cameraSource||inheritedSource||sourceFromFolders(item.parentParts,$("fallbackSelect").value);
+          const sourceBasis=cameraSource?"Camera EXIF":inheritedSource?"Matched sibling photo":($("fallbackSelect").value==="unknown"?"No camera EXIF":"Folder fallback");
           const chosenDate=date||{year:fileDate.getFullYear(),value:String(fileDate.getFullYear())+"-"+String(fileDate.getMonth()+1).padStart(2,"0")+"-"+String(fileDate.getDate()).padStart(2,"0")};
           const folder=[source,String(chosenDate.year).padStart(4,"0")],folderKey=relativeName(folder);
           if(!destinationDirectories.has(folderKey))destinationDirectories.set(folderKey,await maybeDirectory(state.destination,folder));
           const output=await chooseAvailableName(item.name,destinationDirectories.get(folderKey),folder,reserved);
           const row={...item,fileSize:file.size,source:source,sourceBasis:sourceBasis,year:String(chosenDate.year).padStart(4,"0"),dateValue:chosenDate.value,dateBasis:date?"EXIF":"File modified",destination:output,status:"planned"};
           plan.push(row);const parentKey=relativeName(item.parentParts).toLowerCase()+"\u0001";mediaLookup.set(parentKey+item.name.toLowerCase(),row);mediaLookup.set(parentKey+stemOf(item.name).toLowerCase(),row);
-          processed++;if(processed%30===0||processed===mediaFiles.length){setProgress("Reading EXIF and planning folders",processed,mediaFiles.length);await new Promise((resolve)=>setTimeout(resolve,0));}
+          processed++;if(processed%30===0||processed===mediaFiles.length){setProgress("Planning destination folders",processed,mediaFiles.length);await new Promise((resolve)=>setTimeout(resolve,0));}
         }
         for(const item of files.filter((candidate)=>candidate.kind==="Sidecar")){
           const parentKey=relativeName(item.parentParts).toLowerCase()+"\u0001";let companion=mediaLookup.get(parentKey+stemOf(item.name).toLowerCase());
@@ -201,7 +209,7 @@
         }
         plan.sort((a,b)=>a.relativePath.localeCompare(b.relativePath,undefined,{sensitivity:"base"}));state.plan=plan;renderPlan();hideProgress();
         const photos=plan.filter((item)=>item.kind==="Photo").length,videos=plan.filter((item)=>item.kind==="Video").length,sidecars=plan.filter((item)=>item.kind==="Sidecar").length;
-        const exifSources=plan.filter((item)=>item.kind!=="Sidecar"&&item.sourceBasis==="Camera EXIF").length,fallbacks=plan.filter((item)=>item.kind!=="Sidecar"&&item.sourceBasis!=="Camera EXIF").length;
+        const exifSources=plan.filter((item)=>item.kind!=="Sidecar"&&(item.sourceBasis==="Camera EXIF"||item.sourceBasis==="Matched sibling photo")).length,fallbacks=plan.filter((item)=>item.kind!=="Sidecar"&&item.sourceBasis!=="Camera EXIF"&&item.sourceBasis!=="Matched sibling photo").length;
         el.photoCount.textContent=photos.toLocaleString();el.videoCount.textContent=videos.toLocaleString();el.exifCount.textContent=exifSources.toLocaleString();el.fallbackCount.textContent=fallbacks.toLocaleString();
         el.previewSubtitle.textContent="Review the complete move plan below. Nothing has moved yet.";
         el.previewCount.textContent=photos.toLocaleString()+" photos · "+videos.toLocaleString()+" videos · "+sidecars.toLocaleString()+" matched sidecars"+(plan.length>MAX_PREVIEW_ROWS?" · showing first "+MAX_PREVIEW_ROWS.toLocaleString()+" rows":"");
@@ -216,7 +224,7 @@
       for(const item of state.plan.slice(0,MAX_PREVIEW_ROWS)){
         const row=document.createElement("tr"),type=document.createElement("td"),chip=document.createElement("span");
         chip.className="type-chip"+(item.kind==="Video"?" video":item.kind==="Sidecar"?" sidecar":"");chip.textContent=item.kind;type.append(chip);row.append(type);
-        const source=item.source+(item.sourceBasis==="Folder fallback"?" · folder":item.sourceBasis==="No camera EXIF"?" · fallback":item.kind==="Sidecar"?" · sidecar":"");
+        const source=item.source+(item.sourceBasis==="Folder fallback"?" · folder":item.sourceBasis==="No camera EXIF"?" · fallback":item.sourceBasis==="Matched sibling photo"?" · photo match":item.kind==="Sidecar"?" · sidecar":"");
         const values=[source,item.year,item.dateValue,item.dateBasis,item.relativePath,relativeName(item.destination)];
         values.forEach((value,index)=>{const cell=document.createElement("td");cell.textContent=value;cell.title=value;if(index===4)cell.className="path-current";if(index===5)cell.className="path-planned";row.append(cell);});
         fragment.append(row);
