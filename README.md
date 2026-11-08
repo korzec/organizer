@@ -10,7 +10,7 @@ A browser-based photo library organizer. It scans local folders and previews a `
 4. Apply moves only after reviewing the preview. A JSON restore manifest is written into the destination before the first move.
 5. To undo a run, select its manifest, reselect the same source and destination folders, and choose **Restore selected run**. Existing original paths are never overwritten.
 
-File reads and writes happen in the browser. Photos, metadata, and filenames are not uploaded. Camera EXIF is used when available; the app falls back to a meaningful source folder and the file modified date when metadata is missing.
+File reads and writes happen in the browser. Photos, metadata, and filenames are not uploaded. Camera EXIF is used when available. A video without camera EXIF inherits a source when photos with EXIF in the same directory agree on one camera; otherwise the selected folder fallback is used. The file modified date is used when no capture date is available.
 
 The EXIF parser is bundled locally as `site/exifr.umd.js`; its MIT license is in `site/EXIFR-MIT.txt`.
 
